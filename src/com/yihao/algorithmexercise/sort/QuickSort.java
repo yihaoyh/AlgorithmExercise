@@ -22,11 +22,14 @@ public class QuickSort {
         int x = array[r];
         int i = p - 1;
         for (int j = p; j < r; j++) {
+            // 使大于array[r]的元素都在右边，确保array[i+1~j]的元素都>array[r]，array[p~i]都<=array[r]
             if (array[j] <= x) {
                 i++;
                 exchange(array, i, j);
             }
         }
+
+        // i+1对应的元素比r要大，所以和r交换
         exchange(array, i + 1, r);
         System.out.println(i + 1);
         System.out.println(Arrays.toString(array));
