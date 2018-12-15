@@ -1,5 +1,7 @@
 package com.yihao.algorithmexercise.datastructure;
 
+import java.util.NoSuchElementException;
+
 /**
  * 红黑树的实现
  * Created by yihao on 2018/12/15.
@@ -13,12 +15,12 @@ public class RedBlackTree {
         public Integer value;
         public Node left, right;
         public boolean color;
-        public int N;
+        public int size;
 
         public Node(Integer key, Integer value, int N, boolean color) {
             this.key = key;
             this.value = value;
-            this.N = N;
+            this.size = N;
             this.color = color;
         }
 
@@ -28,7 +30,7 @@ public class RedBlackTree {
     private Node root = null;
 
     public boolean isRed(Node h) {
-        if(h == null) {
+        if (h == null) {
             return false;
         }
         return h.color == RED;
@@ -41,15 +43,16 @@ public class RedBlackTree {
 
     /**
      * 中序遍历，输出结果
+     *
      * @return
      */
     @Override
-    public String toString(){
+    public String toString() {
         return print(root);
     }
 
-    private String print(Node node){
-        if(null == node){
+    private String print(Node node) {
+        if (null == node) {
             return "";
         }
         StringBuilder builder = new StringBuilder();
@@ -69,8 +72,8 @@ public class RedBlackTree {
         x.left = h;
         x.color = h.color;
         h.color = RED;
-        x.N = h.N;
-        h.N = 1 + size(h.left) + size(h.right);
+        x.size = h.size;
+        h.size = 1 + size(h.left) + size(h.right);
         return x;
     }
 
@@ -83,17 +86,17 @@ public class RedBlackTree {
         x.right = h;
         x.color = h.color;
         h.color = RED;
-        x.N = h.N;
-        h.N = 1 + size(h.left) + size(h.right);
+        x.size = h.size;
+        h.size = 1 + size(h.left) + size(h.right);
         return x;
     }
 
     // 转换两个红色子节点和该节点的颜色
     private void flipColors(Node h) {
         if (null != h) {
-            h.color = RED;
-            h.left.color = BLACK;
-            h.right.color = BLACK;
+            h.color = !h.color;
+            h.left.color = !h.left.color;
+            h.right.color = !h.right.color;
         }
     }
 
@@ -140,8 +143,189 @@ public class RedBlackTree {
             flipColors(h);
         }
 
-        h.N = size(h.left) + size(h.right) + 1;
+        h.size = size(h.left) + size(h.right) + 1;
         return h;
+    }
+
+
+    // TODO @yihao
+    // the code of functions below
+    // copy from https://algs4.cs.princeton.edu/33balanced/RedBlackBST.java.html
+    // please implementation by myself
+
+    /**
+     * Removes the specified key and its associated value from this symbol table
+     * (if the key is in this symbol table).
+     *
+     * @param  key the key
+     * @throws IllegalArgumentException if {@code key} is {@code null}
+     */
+    public void delete(Integer key) {
+        if (key == null) throw new IllegalArgumentException("argument to delete() is null");
+        if (!contains(key)) return;
+
+        // if both children of root are black, set root to red
+        if (!isRed(root.left) && !isRed(root.right))
+            root.color = RED;
+
+        root = delete(root, key);
+        if (!isEmpty()) root.color = BLACK;
+        // assert check();
+    }
+
+    /**
+     * Does this symbol table contain the given key?
+     * @param key the key
+     * @return {@code true} if this symbol table contains {@code key} and
+     *     {@code false} otherwise
+     * @throws IllegalArgumentException if {@code key} is {@code null}
+     */
+    public boolean contains(Integer key) {
+        return get(key) != null;
+    }
+
+    /**
+     * Returns the value associated with the given key.
+     * @param key the key
+     * @return the value associated with the given key if the key is in the symbol table
+     *     and {@code null} if the key is not in the symbol table
+     * @throws IllegalArgumentException if {@code key} is {@code null}
+     */
+    public Integer get(Integer key) {
+        if (key == null) throw new IllegalArgumentException("argument to get() is null");
+        return get(root, key);
+    }
+
+    // value associated with the given key in subtree rooted at x; null if no such key
+    private Integer get(Node x, Integer key) {
+        while (x != null) {
+            int cmp = key.compareTo(x.key);
+            if      (cmp < 0) x = x.left;
+            else if (cmp > 0) x = x.right;
+            else              return x.value;
+        }
+        return null;
+    }
+
+    // delete the key-value pair with the given key rooted at h
+    private Node delete(Node h, Integer key) {
+        // assert get(h, key) != null;
+
+        if (key.compareTo(h.key) < 0)  {
+            if (!isRed(h.left) && !isRed(h.left.left))
+                h = moveRedLeft(h);
+            h.left = delete(h.left, key);
+        }
+        else {
+            if (isRed(h.left))
+                h = rotateRight(h);
+            if (key.compareTo(h.key) == 0 && (h.right == null))
+                return null;
+            if (!isRed(h.right) && !isRed(h.right.left))
+                h = moveRedRight(h);
+            if (key.compareTo(h.key) == 0) {
+                Node x = min(h.right);
+                h.key = x.key;
+                h.value = x.value;
+                // h.val = get(h.right, min(h.right).key);
+                // h.key = min(h.right).key;
+                h.right = deleteMin(h.right);
+            }
+            else h.right = delete(h.right, key);
+        }
+        return balance(h);
+    }
+
+
+    public void deleteMin() {
+        if (isEmpty()) throw new NoSuchElementException("BST underflow");
+
+        // if both children of root are black, set root to red
+        if (!isRed(root.left) && !isRed(root.right))
+            root.color = RED;
+
+        root = deleteMin(root);
+        if (!isEmpty()) root.color = BLACK;
+        // assert check();
+    }
+
+    // delete the key-value pair with the minimum key rooted at h
+    private Node deleteMin(Node h) {
+        if (h.left == null)
+            return null;
+
+        if (!isRed(h.left) && !isRed(h.left.left))
+            h = moveRedLeft(h);
+
+        h.left = deleteMin(h.left);
+        return balance(h);
+    }
+
+    public boolean isEmpty() {
+        return root == null;
+    }
+
+    // Assuming that h is red and both h.left and h.left.left
+    // are black, make h.left or one of its children red.
+    private Node moveRedLeft(Node h) {
+        // assert (h != null);
+        // assert isRed(h) && !isRed(h.left) && !isRed(h.left.left);
+
+        flipColors(h);
+        if (isRed(h.right.left)) {
+            h.right = rotateRight(h.right);
+            h = rotateLeft(h);
+            flipColors(h);
+        }
+        return h;
+    }
+
+    // restore red-black tree invariant
+    private Node balance(Node h) {
+        // assert (h != null);
+
+        if (isRed(h.right)) {
+            h = rotateLeft(h);
+        }
+        if (isRed(h.left) && isRed(h.left.left)) {
+            h = rotateRight(h);
+        }
+        if (isRed(h.left) && isRed(h.right)) {
+            flipColors(h);
+        }
+
+        h.size = size(h.left) + size(h.right) + 1;
+        return h;
+    }
+
+    // Assuming that h is red and both h.right and h.right.left
+    // are black, make h.right or one of its children red.
+    private Node moveRedRight(Node h) {
+        // assert (h != null);
+        // assert isRed(h) && !isRed(h.right) && !isRed(h.right.left);
+        flipColors(h);
+        if (isRed(h.left.left)) {
+            h = rotateRight(h);
+            flipColors(h);
+        }
+        return h;
+    }
+
+    /**
+     * Returns the smallest key in the symbol table.
+     * @return the smallest key in the symbol table
+     * @throws NoSuchElementException if the symbol table is empty
+     */
+    public Integer min() {
+        if (isEmpty()) throw new NoSuchElementException("calls min() with empty symbol table");
+        return min(root).key;
+    }
+
+    // the smallest key in subtree rooted at x; null if no such key
+    private Node min(Node x) {
+        // assert x != null;
+        if (x.left == null) return x;
+        else                return min(x.left);
     }
 
     public static void main(String[] args) {
